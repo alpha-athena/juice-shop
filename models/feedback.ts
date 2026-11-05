@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-import * as utils from '../lib/utils'
 import * as challengeUtils from '../lib/challengeUtils'
 import {
   Model,
@@ -39,16 +38,14 @@ const FeedbackModelInit = (sequelize: Sequelize) => {
       comment: {
         type: DataTypes.STRING,
         set (comment: string) {
-          let sanitizedComment: string
-          if (utils.isChallengeEnabled(challenges.persistedXssFeedbackChallenge)) {
-            sanitizedComment = security.sanitizeHtml(comment)
-            challengeUtils.solveIf(challenges.persistedXssFeedbackChallenge, () => {
-              return sanitizedComment?.includes('<iframe src="javascript:alert(`xss`)">') ?? false
-            })
-          } else {
-            sanitizedComment = security.sanitizeSecure(comment)
-          }
-          this.setDataValue('comment', sanitizedComment)
+          // Feedback comments are rendered to administrators and to other
+          // visitors, so they are always sanitized recursively (the same
+          // sanitizer every other user-supplied field in this app uses).
+          // The non-recursive sanitize-html 1.4.2 path that backed the
+          // persistedXssFeedbackChallenge let a masked payload such as
+          // <<script>…</script>iframe src="javascript:…"> survive as a
+          // working <iframe>; it is deliberately no longer reachable here.
+          this.setDataValue('comment', security.sanitizeSecure(comment))
         }
       },
       rating: {
