@@ -1,0 +1,7 @@
+# Athena notes
+
+Append-only. One dated paragraph per sitting.
+
+## 2026-11-03 — dependency floors for globally-mounted middleware
+
+Fix sitting for finding 769087d7 (body-parser floor admits CVE-2026-111181). Looked at `package.json` dependencies, `.npmrc` (`package-lock=false`, so no lockfile ever constrains an install), `server.ts` lines 180/335/342/366 (compression, body-parser and morgan are mounted globally) and the `ftp/*.bak` manifests (challenge artifacts served to players; left untouched, and `test/server/antiCheat.unit.test.ts` depends on their contents). Ruled out any other place in the tree that pins these four packages. Changed the four caret floors in `package.json` to the first fixed releases named by OSV in the finding: body-parser ^1.20.9, compression ^1.8.2, morgan ^1.12.1, sequelize ^6.37.8. These are patch/minor bumps inside the ranges already declared, so a fresh install resolves the same way it did before; the change only forbids an install from satisfying the manifest with an advisory-affected version. Added `test/server/dependencyFloors.unit.test.ts`, which computes each range's minimum with `semver.minVersion` and fails if it is below the fixed release. The sandbox could not install this repository's dependencies during the sitting (installer busy), so no test run exists for either side of the change; CI (`.github/workflows/ci.yml`) runs the server unit suite on the pull request.
