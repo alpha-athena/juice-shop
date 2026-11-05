@@ -7,6 +7,7 @@ import { describe, it, before } from 'node:test'
 import assert from 'node:assert/strict'
 import request from 'supertest'
 import type { Express } from 'express'
+import config from 'config'
 import { createTestApp } from './helpers/setup'
 import { login } from './helpers/auth'
 import { challenges } from '../../data/datacache'
@@ -87,6 +88,29 @@ void describe('/dataerasure', () => {
       .send({ layout: null })
 
     assert.equal(res.status, 200)
+  })
+
+  void it('POST erasure request with file path as layout parameter does NOT read the file when lfrChallenge is disabled', async (t) => {
+    const originalGet = config.get.bind(config)
+    t.mock.method(config, 'get', (setting: string) => {
+      if (setting === 'challenges.safetyMode') {
+        return 'enabled'
+      }
+      return originalGet(setting)
+    })
+    assert.equal(utils.isChallengeEnabled(challenges.lfrChallenge), false)
+
+    const { token } = await login(app, { email: 'bjoern@owasp.org', password: 'kitten lesser pooch karate buffoon indoors' })
+
+    const res = await request(app)
+      .post('/dataerasure/')
+      .set({ Cookie: 'token=' + token })
+      .send({ layout: '../package.json' })
+
+    assert.equal(res.status, 200)
+    assert.ok(res.headers['content-type']?.includes('text/html'))
+    assert.ok(res.text.includes('Sorry to see you leave!'))
+    assert.ok(!res.text.includes('"private": true'))
   })
 
   if (utils.isChallengeEnabled(challenges.lfrChallenge)) {

@@ -105,7 +105,7 @@ router.post('/', (req: Request<Record<string, unknown>, Record<string, unknown>,
         const isForbiddenFile: boolean = (filePath.includes('ftp') || filePath.includes('ctf.key') || filePath.includes('encryptionkeys'))
         if (!isForbiddenFile) {
           res.render('dataErasureResult', {
-            ...req.body,
+            layout: req.body.layout,
             ...themeVars
           }, (error, html) => {
             if (!html || error) {
@@ -120,10 +120,10 @@ router.post('/', (req: Request<Record<string, unknown>, Record<string, unknown>,
           next(new Error('File access not allowed'))
         }
       } else {
-        res.render('dataErasureResult', {
-          ...req.body,
-          ...themeVars
-        })
+        // The lfrChallenge is disabled here (Docker, Heroku or safety mode): nothing from the
+        // request body may reach the template engine, because a client-supplied "layout" (or any
+        // other hbs render option) would otherwise still let the caller pick which file is rendered.
+        res.render('dataErasureResult', themeVars)
       }
     } catch (error) {
       next(error)
